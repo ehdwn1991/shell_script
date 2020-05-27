@@ -1,0 +1,80 @@
+#!/bin/bash
+REPOS="$(ls $pwd)"
+BASE_DIR=$(pwd)
+
+. /usr/local/etc/commit/commit.conf
+# 시작할 년의 1월 1일 입력
+#start_date="20200101"
+# 종료될 날 입력
+#end_date="20201231"
+cur_date="$start_date"
+aggregate_commit=
+counting_commit(){
+local count_commit=
+total_commit=0
+local val_date=$cur_date
+while [[ $val_date -le $end_date ]]
+do
+        cal_date=$(cal ${val_date:4:2} ${val_date:0:4} | tr -s " " "\n" | tail -1)
+        cal_date=`expr $cal_date - 1`
+        date_start=$(date -d "$val_date" "+%Y-%m-%d")
+        date_end=$(date -d "$val_date + $cal_date day" "+%Y-%m-%d")
+        count_commit=$(git rev-list --count --since=$date_start  --before=$date_end --all $git_option)
+        echo "$(date -d "$val_date" "+%b") : $count_commit"
+	if [ $count_commit -gt 0 ]; then
+        	total_commit=$((total_commit + count_commit))
+	fi
+  val_date=`date -d "$val_date + 1 month" "+%Y%m%d"`
+done
+if [ $total_commit -gt 0 ]; then
+	aggregate_commit=$((aggregate_commit + total_commit))
+fi
+echo "Total commit : [$total_commit]"
+}
+
+
+merge_option(){
+case ${@:1} in
+        1)
+        echo "Counting Commit with Merge Commit"
+        git_option=
+        ;;
+        2)
+        echo "2"
+        temp2=
+        ;;
+        3)
+        echo "3"
+        temp2=
+        ;;
+        *)
+        echo "Counting Commit without Merge Commit"
+	git_option="--no-merges"
+        ;;
+esac
+
+
+}
+
+echo "Please Select Operation option"
+echo -e "[1] : Counting git commit with Merge commit\n\
+[*] : Counting git commit without Merge commit"
+read gitoption
+merge_option $gitoption
+
+
+
+for repo in $REPOS
+do
+    if [ -h "${repo}" ]; then
+        nrepo="$(readlink ${repo})"
+        [ -d "${nrepo}" ] && repo=${nrepo}
+    fi
+    if [ -d ${repo} ]; then
+	echo "========Count [$repo]========="
+	cd $repo && git pull && counting_commit && echo "================Done===============" && cd - >& /dev/null
+    fi	
+done
+
+echo "==============================================="
+echo "Expected Commit [$aggregate_commit/400]"
