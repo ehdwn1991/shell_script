@@ -80,5 +80,4 @@ do
 done
 
 
-echo "==============================================="
-echo "Expected Commit [$aggregate_commit/400]"
+echo "Expected Commit [$aggregate_commit/xxx]"
