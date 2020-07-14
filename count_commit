@@ -1,4 +1,7 @@
 #!/bin/bash
+
+
+ 
 REPOS="$(ls $pwd)"
 BASE_DIR=$(pwd)
 
@@ -75,6 +78,7 @@ do
 	cd $repo && git pull && counting_commit && echo "================Done===============" && cd - >& /dev/null
     fi	
 done
+
 
 echo "==============================================="
 echo "Expected Commit [$aggregate_commit/400]"
