@@ -1,4 +1,7 @@
 #!/bin/bash
+
+
+ 
 REPOS="$(ls $pwd)"
 BASE_DIR=$(pwd)
 
@@ -9,6 +12,13 @@ BASE_DIR=$(pwd)
 #end_date="20201231"
 cur_date="$start_date"
 aggregate_commit=
+
+tag_listing(){
+
+echo "Tag List"
+git tag --list | awk '{print $1}' | xargs -i echo {}
+}
+
 counting_commit(){
 local count_commit=
 total_commit=0
@@ -33,7 +43,7 @@ echo "Total commit : [$total_commit]"
 }
 
 
-merge_option(){
+action_opt(){
 case ${@:1} in
         1)
         echo "Counting Commit with Merge Commit"
@@ -41,11 +51,11 @@ case ${@:1} in
         ;;
         2)
         echo "2"
-        temp2=
+        tag_opt=2
         ;;
         3)
         echo "3"
-        temp2=
+        tag_opt=3
         ;;
         *)
         echo "Counting Commit without Merge Commit"
@@ -56,25 +66,62 @@ esac
 
 }
 
+tag_executor(){
+case $tag_opt in 
+	1)
+	counting_commit
+	;;
+	2)
+	tag_listing
+	;;
+	3)
+	issue_listing
+	;;
+	*)
+	;;
+esac
+}
+
+issue_listing(){
+echo "[Issue List]"
+issue_arr=$(gh issue list -s all)
+temp_issue_str=""
+for words in ${issue_arr[@]};do
+temp_issue_str=$(printf "%s $words" "$temp_issue_str")
+	if echo $temp_issue_str | grep -Eq '[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1]) (2[0-3]|[01][0-9]):[0-5][0-9]:[0-5][0-9] \+[0-9][0-9][0-9][0-9] UTC';then
+	echo $temp_issue_str
+	temp_issue_str=""
+	fi
+done 
+
+}
+
+
 echo "Please Select Operation option"
 echo -e "[1] : Counting git commit with Merge commit\n\
+[2] : Tag List\n\
+[3] : Issue List\n\
 [*] : Counting git commit without Merge commit"
 read gitoption
-merge_option $gitoption
+action_opt $gitoption
 
 
 
 for repo in $REPOS
 do
+    # soft link 일 경우 readlink로 원래의 경로을 구해서 원 경로가 directory이면
+    # repo를 원 경로로 변경한다.
     if [ -h "${repo}" ]; then
         nrepo="$(readlink ${repo})"
         [ -d "${nrepo}" ] && repo=${nrepo}
     fi
     if [ -d ${repo} ]; then
 	echo "========Count [$repo]========="
-	cd $repo && git pull && counting_commit && echo "================Done===============" && cd - >& /dev/null
+	#cd $repo && git pull && if [ -z "$tag_opt" ]; then counting_commit; else  tag_listing; fi && echo "================Done===============" && cd - >& /dev/null
+	cd $repo && git pull && tag_executor && echo "================Done===============" && cd - >& /dev/null
     fi	
 done
+
 
 echo "==============================================="
 echo "Expected Commit [$aggregate_commit/400]"
